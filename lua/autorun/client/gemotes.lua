@@ -1,19 +1,27 @@
 -----------------------------------------------------------------------------------------------
-
-local gemotes = {}
-
+gemotes = gemotes or {}
 gemotes.emotions = {}
 
-do
-    for i, k in ipairs(file.Find("materials/gemotes/*", "GAME")) do
-        gemotes.emotions[i] = Material("gemotes/" .. k)
-    end
+
+function gemotes.RegisterEmote(_material, _sound)
+	table.insert(gemotes.emotions, {
+		material = Material(_material), 
+		sound = _sound
+	})
 end
 
-gemotes.Draw = function(id, x, y, w, h)
+-- Including config.
+include("gemotes/config.lua")
+
+local basisMaterial = Material("gemotes/base.png")
+local basisSelectMaterial = Material("gemotes/base_select.png")
+
+gemotes.Draw = function(id, x, y, w, h, selectBox)
     surface.SetDrawColor(255, 255, 255, 255)
-    surface.SetMaterial(gemotes.emotions[id])
-    surface.DrawTexturedRect(x, y, w, h)
+    surface.SetMaterial(selectBox and basisSelectMaterial or basisMaterial)
+    surface.DrawTexturedRect(x, y, w, selectBox and w or h)
+    surface.SetMaterial(gemotes.emotions[id].material)
+    surface.DrawTexturedRect(x+w*0.075, y+w*0.075, w*0.85, w*0.85)
 end
 
 -----------------------------------------------------------------------------------------------
@@ -99,7 +107,7 @@ function PANEL:Paint(w, h)
         local x = w / 2 + cos * 128 - _w / 2
         local y = h / 2 + sin * 128 - _h / 2
 
-        gemotes.Draw(i, x, y, _w, _h)
+        gemotes.Draw(i, x, y, _w, _h, true)
     end
 end
 
@@ -110,7 +118,6 @@ vgui.Register("gemotes", PANEL, "DPanel")
 local Bind = CreateClientConVar("gemotes_open", tostring(KEY_J))
 
 hook.Add("PlayerButtonDown", "gemotes", function(ply, key) -- Open
-    print(IsFirstTimePredicted())
 	if key == Bind:GetInt() then
 		local panel = gemotes.panel
 		if IsValid(panel) then
@@ -134,7 +141,7 @@ hook.Add("PlayerButtonUp", "gemotes", function(ply, key) -- Close
 			if not selected then return end
 
 			net.Start("gemotes") -- Net
-			    net.WriteInt(selected, 7)
+			    net.WriteUInt(selected, 7)
 			net.SendToServer()
 		end
 	end
@@ -146,7 +153,9 @@ gemotes.draw = {}
 gemotes.huddraw = false
 
 net.Receive("gemotes", function() -- Receive
-	local selected, ply = net.ReadInt(7), net.ReadEntity()
+	local selected, ply = net.ReadUInt(7), net.ReadEntity()
+
+	ply:EmitSound(gemotes.emotions[selected].sound, 75, 100, 1)
 
 	if not gemotes.emotions[selected] then
         return
@@ -157,12 +166,12 @@ net.Receive("gemotes", function() -- Receive
     end
 
 	gemotes.draw[ply] = {
-        time = RealTime(),
+        time = RealTime(),	
         scale = 0,
 		selected = selected,
 	}
 
-	-- ply:EmitSound(gemotes.GetIcon(page, id).sound, 75, 100, 1)
+
 end)
 
 -----------------------------------------------------------------------------------------------
@@ -268,7 +277,7 @@ local function BuildPanel(Panel) -- Utilites
 end
 
 hook.Add("PopulateToolMenu", "Emotions_PopulateToolMenu", function()
-	spawnmenu.AddToolMenuOption("Utilities", "MBOX", "Binds", "Binds", "", "", BuildPanel)
+	spawnmenu.AddToolMenuOption("Utilities", "User", "GEmotes", "Binds", "", "", BuildPanel)
 end)
 
 -----------------------------------------------------------------------------------------------
