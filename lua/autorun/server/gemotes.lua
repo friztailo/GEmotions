@@ -12,9 +12,12 @@ end
 -- load config
 include("gemotes/config.lua")
 
+-- load png
 resource.AddSingleFile("materials/gemotes/base.png")
 resource.AddSingleFile("materials/gemotes/base_select.png")
 
+-- load sound
+resource.AddSingleFile("sound/gemotes/ui/switch.ogg")
 
 local antispam = {}
 

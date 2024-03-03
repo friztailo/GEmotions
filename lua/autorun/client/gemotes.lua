@@ -2,7 +2,6 @@
 gemotes = gemotes or {}
 gemotes.emotions = {}
 
-
 function gemotes.RegisterEmote(_material, _sound)
 	table.insert(gemotes.emotions, {
 		material = Material(_material), 
@@ -49,6 +48,7 @@ function PANEL:Init() -- Init
             })
         end
 
+		self.emotions.radius = math.max(96, (64 * count) / (2 * math.pi))
         self.emotions.count = count
         self.emotions.step = step
     end
@@ -60,13 +60,23 @@ function PANEL:OnCursorMoved(x, y)
 
     if length > 64 then
         local angle = y >= 0 and math.acos(x / length) or math.pi + math.acos(-x / length)
-        self.emotions_selected = math.Round(angle / self.emotions.step) % self.emotions.count + 1
+        local selected = math.Round(angle / self.emotions.step) % self.emotions.count + 1
+		if selected ~= self.emotions_selected then
+			surface.PlaySound("gemotes/ui/switch.ogg")
+		end
+		self.emotions_selected = selected
     else
         self.emotions_selected = nil
     end
 end
 
 function PANEL:Show() -- Show
+	if self.emotions_selected then
+		local k = self.emotions[self.emotions_selected]
+		k.scale = 1
+		self.emotions_selected = nil
+	end
+
 	self:SetVisible(true)
 	self:Stop()
 	self:AlphaTo(255, 0.1)
@@ -94,7 +104,12 @@ function PANEL:Paint(w, h)
 	surface.SetDrawColor(32, 32, 32, 240)
 	surface.DrawRect(0, 0, w, h)
 
+	-- Draw Circle
+	surface.DrawCircle(w / 2, h / 2, 64, 128, 128, 128, 32)
+
     -- Draw Emotions
+	local radius = self.emotions.radius
+
     for i, k in ipairs(self.emotions) do
         local cos, sin = k.cos, k.sin
 
@@ -104,8 +119,8 @@ function PANEL:Paint(w, h)
 
         local _w = 32 * scale
         local _h = 38 * scale
-        local x = w / 2 + cos * 128 - _w / 2
-        local y = h / 2 + sin * 128 - _h / 2
+        local x = w / 2 + cos * radius - _w / 2
+        local y = h / 2 + sin * radius - _h / 2
 
         gemotes.Draw(i, x, y, _w, _h, true)
     end
@@ -116,6 +131,10 @@ vgui.Register("gemotes", PANEL, "DPanel")
 -----------------------------------------------------------------------------------------------
 
 local Bind = CreateClientConVar("gemotes_open", tostring(KEY_J))
+
+if IsValid(gemotes.panel) then
+	gemotes.panel:Remove()
+end
 
 hook.Add("PlayerButtonDown", "gemotes", function(ply, key) -- Open
 	if key == Bind:GetInt() then
