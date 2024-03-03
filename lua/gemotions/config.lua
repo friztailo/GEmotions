@@ -1,0 +1,18 @@
+gemotions.EmoteCooldown = 0.5
+
+gemotions.RegisterEmote("gemotions/wapp/hi.png", "gemotions/wapp/hi.ogg")
+gemotions.RegisterEmote("gemotions/wapp/bye.png", "gemotions/wapp/bye.ogg")
+gemotions.RegisterEmote("gemotions/wapp/happy.png", "gemotions/wapp/happy.ogg")
+gemotions.RegisterEmote("gemotions/wapp/sob.png", "gemotions/wapp/sob.ogg")
+gemotions.RegisterEmote("gemotions/wapp/rofl.png", "gemotions/wapp/rofl.ogg")
+gemotions.RegisterEmote("gemotions/wapp/think.png", "gemotions/wapp/think.ogg")
+gemotions.RegisterEmote("gemotions/wapp/scream.png", "gemotions/wapp/scream.ogg")
+gemotions.RegisterEmote("gemotions/wapp/wow.png", "gemotions/wapp/wow.ogg")
+gemotions.RegisterEmote("gemotions/wapp/rage.png", "gemotions/wapp/rage.ogg")
+gemotions.RegisterEmote("gemotions/wapp/huh.png", "gemotions/wapp/huh.ogg")
+gemotions.RegisterEmote("gemotions/wapp/sleep.png", "gemotions/wapp/sleep.ogg")
+gemotions.RegisterEmote("gemotions/wapp/clap.png", "gemotions/wapp/clap.ogg")
+gemotions.RegisterEmote("gemotions/wapp/vomit.png", "gemotions/wapp/vomit.ogg")
+gemotions.RegisterEmote("gemotions/wapp/evil.png", "gemotions/wapp/evil.ogg")
+gemotions.RegisterEmote("gemotions/wapp/shock.png", "gemotions/wapp/shock.ogg")
+gemotions.RegisterEmote("gemotions/wapp/yawn.png", "gemotions/wapp/yawn.ogg")
