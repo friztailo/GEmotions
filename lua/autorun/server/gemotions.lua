@@ -9,15 +9,20 @@ function gemotions.RegisterEmote(_material, _sound)
 	resource.AddSingleFile(string.format("materials/%s", _material))
 	resource.AddSingleFile(string.format("sound/%s", _sound))
 end
+
+local function AddFiles(path)
+	local path = path .. "/"
+	for _,name in ipairs(file.Find(path .. "*", "GAME")) do
+		resource.AddSingleFile(path .. name)
+	end
+end
+
 -- load config
 include("gemotions/config.lua")
 
--- load png
-resource.AddSingleFile("materials/gemotions/base.png")
-resource.AddSingleFile("materials/gemotions/base_select.png")
-
--- load sound
-resource.AddSingleFile("sound/gemotions/ui/switch.ogg")
+-- load resources
+AddFiles("materials/gemotions")
+AddFiles("sound/gemotions/ui")
 
 local antispam = {}
 

@@ -1,35 +1,44 @@
 --[[
-	TODO: Страницы доделать
-	Кста возможный баг, так как количество высчитывается в PANEL:Init()
+	Страницы сделаны
+	Я бы код чучуть перебрал, а то у меня переменные ваще по уебски называтся (стрк 55)
 ]]--
 -----------------------------------------------------------------------------------------------
 gemotions = gemotions or {}
-gemotions.emotions = {}
-gemotions.emotionsPerPages = 32
-gemotions.page = 1
 
-function gemotions.RegisterEmote(_material, _sound)
+gemotions.emotions = {}
+gemotions.emotionsPages = {}
+
+function gemotions.RegisterEmote(page, _material, _sound)
 	table.insert(gemotions.emotions, {
 		material = Material(_material), 
 		sound = _sound
 	})
+
+	if not gemotions.emotionsPages[page] then
+		gemotions.emotionsPages[page] = {}
+	end
+
+	table.insert(gemotions.emotionsPages[page], #gemotions.emotions)
 end
 
 -- Including config.
 include("gemotions/config.lua")
 
-gemotions.pages = math.ceil(#gemotions.emotions / 32)
+do
+	local basis = Material("gemotions/base.png")
+	local basisSelect = Material("gemotions/base_select.png")	
 
+	local surface_SetDrawColor = surface.SetDrawColor
+	local surface_SetMaterial = surface.SetMaterial
+	local surface_DrawTexturedRect = surface.DrawTexturedRect
 
-local basisMaterial = Material("gemotions/base.png")
-local basisSelectMaterial = Material("gemotions/base_select.png")
-
-gemotions.Draw = function(id, x, y, w, h, selectBox)
-    surface.SetDrawColor(255, 255, 255, 255)
-    surface.SetMaterial(selectBox and basisSelectMaterial or basisMaterial)
-    surface.DrawTexturedRect(x, y, w, selectBox and w or h)
-    surface.SetMaterial(gemotions.emotions[id].material)
-    surface.DrawTexturedRect(x+w*0.075, y+w*0.075, w*0.85, w*0.85)
+	gemotions.Draw = function(id, x, y, w, h, selectBox)
+		surface_SetDrawColor(255, 255, 255, 255)
+		surface_SetMaterial(selectBox and basisSelect or basis)
+		surface_DrawTexturedRect(x, y, w, selectBox and w or h)
+		surface_SetMaterial(gemotions.emotions[id].material)
+		surface_DrawTexturedRect(x + w * 0.075, y + w * 0.075, w * 0.85, w * 0.85)
+	end
 end
 
 -----------------------------------------------------------------------------------------------
@@ -43,24 +52,32 @@ function PANEL:Init() -- Init
 	self:SetAlpha(0)
 	self:Show()
 
-    self.emotions = {}
     do
-        local count = math.min(#gemotions.emotions, gemotions.emotionsPerPages)
-        local step = 2 * math.pi / count
+		self.emotions = {}
+		self.emotionsPage = 1
+		self.emotionsPages = #gemotions.emotionsPages
 
-        for i = 0, count - 1 do
-            local rad = i * step
-            table.insert(self.emotions, {
-                cos = math.cos(rad),
-                sin = math.sin(rad),
-                scale = 1
-            })
-        end
+		for p = 1, self.emotionsPages do
+			self.emotions[p] = {}
 
-		self.emotions.radius = math.max(96, (64 * count) / (2 * math.pi))
-        self.emotions.count = count
-        self.emotions.step = step
-    end
+			local page = gemotions.emotionsPages[p]
+			local count = #page
+			local step = 2 * math.pi / count
+
+			for i, k in ipairs(page) do
+				local rad = (i - 1) * step
+				table.insert(self.emotions[p], {
+					cos = math.cos(rad),
+					sin = math.sin(rad),
+					scale = 1
+				})
+			end
+
+			self.emotions[p].radius = math.max(112, (64 * count) / (2 * math.pi))
+			self.emotions[p].count = count
+			self.emotions[p].step = step
+		end
+	end
 end
 
 function PANEL:OnCursorMoved(x, y)
@@ -69,21 +86,31 @@ function PANEL:OnCursorMoved(x, y)
 
     if length > 64 then
         local angle = y >= 0 and math.acos(x / length) or math.pi + math.acos(-x / length)
-        local selected = math.Round(angle / self.emotions.step) % self.emotions.count + 1
-		if selected ~= self.emotions_selected then
+
+		local emotions = self.emotions[self.emotionsPage]
+        local selected = math.Round(angle / emotions.step) % emotions.count + 1
+
+		if selected ~= self.emotionsSelected then
 			surface.PlaySound("gemotions/ui/switch.ogg")
 		end
-		self.emotions_selected = selected
+		
+		self.emotionsSelected = selected
     else
-        self.emotions_selected = nil
+        self.emotionsSelected = nil
     end
 end
 
+function PANEL:OnMouseWheeled(delta)
+	local emotions = self.emotions
+	self.emotionsPage = (self.emotionsPage - delta - 1) % self.emotionsPages + 1
+	self.emotionsSelected = nil
+end
+
 function PANEL:Show() -- Show
-	if self.emotions_selected then
-		local k = self.emotions[self.emotions_selected]
+	if self.emotionsSelected then
+		local k = self.emotions[self.emotionsPage][self.emotionsSelected]
 		k.scale = 1
-		self.emotions_selected = nil
+		self.emotionsSelected = nil
 	end
 
 	self:SetVisible(true)
@@ -117,23 +144,23 @@ function PANEL:Paint(w, h)
 	surface.DrawCircle(w / 2, h / 2, 64, 128, 128, 128, 32)
 
     -- Draw Emotions
-	local radius = self.emotions.radius
+	local emotions = self.emotions[self.emotionsPage]
+	local radius = emotions.radius
 
-	local k
-    for i = 1, math.min(#self.emotions, gemotions.emotionsPerPages) do
-		k = self.emotions[i]
+    for i = 1, emotions.count do
+		local k = emotions[i]
         local cos, sin = k.cos, k.sin
 
         local scale = Lerp(RealFrameTime() * 12, k.scale,
-            i == self.emotions_selected and 2 or 1)
+            i == self.emotionsSelected and 2 or 1)
         k.scale = scale
 
         local _w = 32 * scale
-        local _h = 38 * scale
+        local _h = 32 * scale
         local x = w / 2 + cos * radius - _w / 2
         local y = h / 2 + sin * radius - _h / 2
 
-        gemotions.Draw(i, x, y, _w, _h, true)
+        gemotions.Draw(gemotions.emotionsPages[self.emotionsPage][i], x, y, _w, _h, true)
     end
 end
 
@@ -167,11 +194,12 @@ hook.Add("PlayerButtonUp", "gemotions", function(ply, key) -- Close
 			CloseDermaMenus()
 			gui.EnableScreenClicker(false)
 
-            local selected = panel.emotions_selected
+            local selected = panel.emotionsSelected
 			if not selected then return end
 
 			net.Start("gemotions") -- Net
-			    net.WriteUInt(selected, 7)
+			PrintTable(gemotions.emotionsPages)
+			    net.WriteUInt(gemotions.emotionsPages[panel.emotionsPage][selected], 7)
 			net.SendToServer()
 		end
 	end
@@ -185,7 +213,8 @@ gemotions.huddraw = false
 net.Receive("gemotions", function() -- Receive
 	local selected, ply = net.ReadUInt(7), net.ReadEntity()
 
-	ply:EmitSound(gemotions.emotions[selected].sound, 75, 100, 1)
+	ply:EmitSound(gemotions.emotions[selected].sound
+		or "gemotions/ui/bong.ogg", 75, 100, 1)
 
 	if not gemotions.emotions[selected] then
         return
@@ -200,8 +229,6 @@ net.Receive("gemotions", function() -- Receive
         scale = 0,
 		selected = selected,
 	}
-
-
 end)
 
 -----------------------------------------------------------------------------------------------
@@ -294,7 +321,7 @@ end)
 local function BuildPanel(Panel) -- Utilites
 	Panel.EmotionsText = vgui.Create("DLabel")
 	Panel.EmotionsText:SetColor(Color(219, 65, 68, 255))
-	Panel.EmotionsText:SetText("Emotions")
+	Panel.EmotionsText:SetText("Open")
 	Panel.EmotionsText:SizeToContents()
 	Panel:AddItem(Panel.EmotionsText)
 
