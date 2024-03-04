@@ -11,15 +11,33 @@
 gemotions = gemotions or {}
 
 gemotions.emotions = {}
-gemotions.packs = {}
+gemotions.packages = {}
 
-function gemotions.RegisterEmote(pack, _material, _sound)
-	if not gemotions.emotions[pack] then
-		gemotions.emotions[pack] = {}
-		table.insert(gemotions.packs, pack)
+function gemotions.RegisterPackage(package, title, data)
+	if not gemotions.emotions[package] then
+		gemotions.emotions[package] = {
+			title = title
+		}
+		table.insert(gemotions.packages, package)
 	end
 
-	table.insert(gemotions.emotions[pack], {
+	for i, k in ipairs(data) do
+		local mat, snd = k[1], k[2]
+
+		table.insert(gemotions.emotions[package], {
+			material = Material(mat), 
+			sound = snd
+		})
+	end
+end
+
+function gemotions.RegisterEmote(package, _material, _sound)
+	if not gemotions.emotions[package] then
+		gemotions.emotions[package] = {}
+		table.insert(gemotions.packages, package)
+	end
+
+	table.insert(gemotions.emotions[package], {
 		material = Material(_material), 
 		sound = _sound
 	})
@@ -32,7 +50,7 @@ for k, v in ipairs(file.Find( "gemotions/*", "LUA" )) do
 end
 
 function gemotions.GetPack(id)
-	return gemotions.emotions[gemotions.packs[id]]
+	return gemotions.emotions[gemotions.packages[id]]
 end
 
 do
@@ -43,11 +61,11 @@ do
 	local surface_SetMaterial = surface.SetMaterial
 	local surface_DrawTexturedRect = surface.DrawTexturedRect
 
-	gemotions.Draw = function(pack, id, x, y, w, h, selectBox)
+	gemotions.Draw = function(package, id, x, y, w, h, selectBox)
 		surface_SetDrawColor(255, 255, 255, 255)
 		surface_SetMaterial(selectBox and basisSelect or basis)
 		surface_DrawTexturedRect(x, y, w, selectBox and w or h)
-		surface_SetMaterial(pack[id].material)
+		surface_SetMaterial(package[id].material)
 		surface_DrawTexturedRect(x + w * 0.075, y + w * 0.075, w * 0.85, w * 0.85)
 	end
 end
@@ -94,9 +112,9 @@ function PANEL:OnCursorMoved(x, y)
 end
 
 function PANEL:OnMouseWheeled(delta)
-	if (#gemotions.packs < 2) then return end 
+	if (#gemotions.packages < 2) then return end 
 
-	self.selectedPack = (self.selectedPack - delta - 1) % #gemotions.packs + 1
+	self.selectedPack = (self.selectedPack - delta - 1) % #gemotions.packages + 1
 	self.emotionSelected = nil
 
 	surface.PlaySound("gemotions/ui/rollover.ogg")
@@ -135,20 +153,22 @@ function PANEL:Paint(w, h)
 	surface.DrawRect(0, 0, w, h)
 
 	-- Cifri snizu
-	if (#gemotions.packs > 1) then
-		draw.SimpleText( string.format("%d/%d", self.selectedPack, #gemotions.packs), "HudDefault", w/2, h*0.975, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
-	end
+	local package = self:GetSelectedPack()
+
+	-- if (#gemotions.packages > 1) then
+		local _, sh = draw.SimpleText( string.format("%d/%d", self.selectedPack, #gemotions.packages), "HudDefault", w/2, h*0.975, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
+		draw.SimpleText( package.title, "HudDefault", w/2, h*0.975 - sh, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
+	-- end
 
 	-- Draw Circle
 	surface.DrawCircle(w / 2, h / 2, 64, 128, 128, 128, 32)
 
     -- Draw Emotions
-	local emotions = self:GetSelectedPack()
-	local count = #emotions
+	local count = #package
 	local radius = math.max(112, (64 * count) / (2 * math.pi))
 
     for i = 1, count do
-		local k = emotions[i]
+		local k = package[i]
 		local step = 2 * math.pi / count
 		local rad = (i - 1) * step
 
@@ -162,7 +182,7 @@ function PANEL:Paint(w, h)
         local x = w / 2 + cos * radius - _w / 2
         local y = h / 2 + sin * radius - _h / 2
 
-        gemotions.Draw(emotions, i, x, y, _w, _h, true)
+        gemotions.Draw(package, i, x, y, _w, _h, true)
     end
 	
 end
@@ -250,9 +270,9 @@ gemotions.draw = {}
 gemotions.huddraw = false
 
 net.Receive("gemotions", function() -- Receive
-	local selected, pack, ply = net.ReadUInt(7), net.ReadUInt(7), net.ReadEntity()
+	local selected, package, ply = net.ReadUInt(7), net.ReadUInt(7), net.ReadEntity()
 
-	local packtbl = gemotions.GetPack(pack)
+	local packtbl = gemotions.GetPack(package)
 
 	if not packtbl then
 		return
@@ -273,7 +293,7 @@ net.Receive("gemotions", function() -- Receive
         time = RealTime(),	
         scale = 0,
 		selected = selected,
-		pack = packtbl
+		package = packtbl
 	}
 end)
 
@@ -309,7 +329,7 @@ hook.Add("PostPlayerDraw", "gemotions", function(ply, studio) -- PostPlayerDraw
 		data.scale = scale
         
 		cam.Start3D2D(pos, angle, scale or data.scale)
-            gemotions.Draw(data.pack, data.selected, -16, -38, 32, 38)
+            gemotions.Draw(data.package, data.selected, -16, -38, 32, 38)
 		cam.End3D2D()
 
 		if ply == LocalPlayer() then
@@ -357,7 +377,7 @@ hook.Add("HUDPaint", "gemotions", function() -- HUDPaint
 		m:Translate(m_vec)
 
 		cam.PushModelMatrix(m)
-            gemotions.Draw(data.pack, data.selected, w / 2 - 160, 38, 320, 380)
+            gemotions.Draw(data.package, data.selected, w / 2 - 160, 38, 320, 380)
 		cam.PopModelMatrix()
 	end
 end)
