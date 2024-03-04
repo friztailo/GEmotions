@@ -104,6 +104,8 @@ function PANEL:OnMouseWheeled(delta)
 	local emotions = self.emotions
 	self.emotionsPage = (self.emotionsPage - delta - 1) % self.emotionsPages + 1
 	self.emotionsSelected = nil
+
+	surface.PlaySound("gemotions/ui/rollover.ogg")
 end
 
 function PANEL:Show() -- Show
