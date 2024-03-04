@@ -13,60 +13,81 @@ gemotions = gemotions or {}
 gemotions.emotions = {}
 gemotions.packages = {}
 
-function gemotions.RegisterPackage(package, title, data)
-	if not gemotions.emotions[package] then
-		gemotions.emotions[package] = {
-			title = title
-		}
-		table.insert(gemotions.packages, package)
-	end
+do
+	function gemotions.RegisterPackage(package, title, data)
+		if not gemotions.emotions[package] then
+			gemotions.emotions[package] = {
+				title = title
+			}
+			table.insert(gemotions.packages, package)
+		end
 
-	for i, k in ipairs(data) do
-		local mat, snd = k[1], k[2]
+		for i, k in ipairs(data) do
+			local mat, snd = k[1], k[2]
 
-		table.insert(gemotions.emotions[package], {
-			material = Material(mat), 
-			sound = snd
-		})
+			table.insert(gemotions.emotions[package], {
+				material = Material(mat), 
+				sound = snd
+			})
+		end
 	end
 end
 
-function gemotions.RegisterEmote(package, _material, _sound)
-	if not gemotions.emotions[package] then
-		gemotions.emotions[package] = {}
-		table.insert(gemotions.packages, package)
+do 
+	gemotions.GetPack = function(id)
+		return gemotions.emotions[gemotions.packages[id]]
 	end
-
-	table.insert(gemotions.emotions[package], {
-		material = Material(_material), 
-		sound = _sound
-	})
-end
-
--- Including config.
-
-for k, v in ipairs(file.Find( "gemotions/*", "LUA" )) do
-	include(string.format("gemotions/%s", v))
-end
-
-function gemotions.GetPack(id)
-	return gemotions.emotions[gemotions.packages[id]]
 end
 
 do
 	local basis = Material("gemotions/base.png")
-	local basisSelect = Material("gemotions/base_select.png")	
+	local basisSelect = Material("gemotions/base_select.png")
 
-	local surface_SetDrawColor = surface.SetDrawColor
-	local surface_SetMaterial = surface.SetMaterial
-	local surface_DrawTexturedRect = surface.DrawTexturedRect
+	local mesh_Begin, mesh_Color, mesh_Position, mesh_TexCoord, mesh_AdvanceVertex, mesh_End, render_SetMaterial =
+		mesh.Begin, mesh.Color, mesh.Position, mesh.TexCoord, mesh.AdvanceVertex, mesh.End, render.SetMaterial
+	local vec_SetUnpacked = getmetatable(Vector(0, 0, 0)).SetUnpacked
+
+	local quad_v1, quad_v2, quad_v3, quad_v4 = Vector(0, 0, 0), Vector(0, 0, 0), Vector(0, 0, 0), Vector(0, 0, 0)
+	local makeQuad = function(x, y, w, h)
+		local right, bot = x + w, y + h
+		vec_SetUnpacked(quad_v1, x, y, 0)
+		vec_SetUnpacked(quad_v2, right, y, 0)
+		vec_SetUnpacked(quad_v3, right, bot, 0)
+		vec_SetUnpacked(quad_v4, x, bot, 0)
+	end
+
+	local drawTexturedRect = function(x, y, w, h, mat)
+		makeQuad(x, y, w, h)
+		render_SetMaterial(mat)
+		mesh_Begin(7, 1)
+				mesh_Position(quad_v1)
+				mesh_Color(255, 255, 255, 255)
+				mesh_TexCoord(0, 0, 0)
+			mesh_AdvanceVertex()
+				mesh_Position(quad_v2)
+				mesh_Color(255, 255, 255, 255)
+				mesh_TexCoord(0, 1, 0)
+			mesh_AdvanceVertex()
+				mesh_Position(quad_v3)
+				mesh_Color(255, 255, 255, 255)
+				mesh_TexCoord(0, 1, 1)
+			mesh_AdvanceVertex()
+				mesh_Position(quad_v4)
+				mesh_Color(255, 255, 255, 255)
+				mesh_TexCoord(0, 0, 1)
+			mesh_AdvanceVertex()
+		mesh_End()
+	end
 
 	gemotions.Draw = function(package, id, x, y, w, h, selectBox)
-		surface_SetDrawColor(255, 255, 255, 255)
-		surface_SetMaterial(selectBox and basisSelect or basis)
-		surface_DrawTexturedRect(x, y, w, selectBox and w or h)
-		surface_SetMaterial(package[id].material)
-		surface_DrawTexturedRect(x + w * 0.075, y + w * 0.075, w * 0.85, w * 0.85)
+		drawTexturedRect(x, y, w, selectBox and w or h, selectBox and basisSelect or basis)
+		drawTexturedRect(x + w * 0.075, y + w * 0.075, w * 0.85, w * 0.85, package[id].material)
+	end
+end
+
+do -- Loading Packages
+	for k, v in ipairs(file.Find("gemotions/*", "LUA")) do
+		include(string.format("gemotions/%s", v))
 	end
 end
 
@@ -76,7 +97,7 @@ local PANEL = {}
 
 local blur = Material("pp/blurscreen")
 
-function PANEL:GetSelectedPack()
+function PANEL:GetSelectedPackage()
 	return gemotions.GetPack(self.selectedPack)
 end
 
@@ -92,7 +113,7 @@ function PANEL:OnCursorMoved(x, y)
     local x, y = x - ScrW() / 2, y - ScrH() / 2
     local length = math.sqrt(x ^ 2 + y ^ 2)
 
-	local emotions = self:GetSelectedPack()
+	local emotions = self:GetSelectedPackage()
 	local step = 2 * math.pi / #emotions
 
 	if length > 64 then
@@ -122,6 +143,7 @@ end
 
 function PANEL:Show() -- Show
 	if self.emotionSelected then
+		self:GetSelectedPackage()[self.emotionSelected].scale = 1
 		self.emotionSelected = nil
 	end
 
@@ -153,7 +175,7 @@ function PANEL:Paint(w, h)
 	surface.DrawRect(0, 0, w, h)
 
 	-- Cifri snizu
-	local package = self:GetSelectedPack()
+	local package = self:GetSelectedPackage()
 
 	-- if (#gemotions.packages > 1) then
 		local _, sh = draw.SimpleText( string.format("%d/%d", self.selectedPack, #gemotions.packages), "HudDefault", w/2, h*0.975, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
@@ -174,7 +196,7 @@ function PANEL:Paint(w, h)
 
         local cos, sin = math.cos(rad), math.sin(rad)	
 
-        local scale = Lerp(RealFrameTime() * 12, self.emotionSelected and k.scale or 1, i == self.emotionSelected and 2 or 1)
+        local scale = Lerp(RealFrameTime() * 12, k.scale or 1, i == self.emotionSelected and 2 or 1)
 		k.scale = scale
 
         local _w = 32 * scale
