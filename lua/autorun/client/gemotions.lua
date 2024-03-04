@@ -29,7 +29,11 @@ end
 
 for k, v in ipairs(file.Find( "gemotions/*", "LUA" )) do
 	include(string.format("gemotions/%s", v))
-end 
+end
+
+function gemotions.GetPack(id)
+	return gemotions.emotions[gemotions.packs[id]]
+end
 
 do
 	local basis = Material("gemotions/base.png")
@@ -56,10 +60,6 @@ local blur = Material("pp/blurscreen")
 
 function PANEL:GetSelectedPack()
 	return gemotions.GetPack(self.selectedPack)
-end
-
-function gemotions.GetPack(id)
-	return gemotions.emotions[gemotions.packs[id]]
 end
 
 function PANEL:Init() -- Init
@@ -253,13 +253,17 @@ net.Receive("gemotions", function() -- Receive
 	local selected, pack, ply = net.ReadUInt(7), net.ReadUInt(7), net.ReadEntity()
 
 	local packtbl = gemotions.GetPack(pack)
-	
-	ply:EmitSound(packtbl[selected].sound
-		or "gemotions/ui/bong.ogg", 75, 100, 1)
+
+	if not packtbl then
+		return
+	end
 
 	if not packtbl[selected] then
         return
     end
+
+	ply:EmitSound(packtbl[selected].sound
+		or "gemotions/ui/bong.ogg", 75, 100, 1)
 
     if ply == LocalPlayer() then
         gemotions.huddraw = true
