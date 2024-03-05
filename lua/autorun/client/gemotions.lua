@@ -380,9 +380,8 @@ do
 	local ScrW, ScrH = ScrW, ScrH
 	local abs, InOutBack = math.abs, math.ease.InOutBack
 
-	local ply = LocalPlayer()
-
 	hook.Add("HUDPaint", "gemotions", function() -- HUDPaint
+		local ply = LocalPlayer()
 		if ply:ShouldDrawLocalPlayer() then return end
 
 		local data = gemotionsDraw[ply]
