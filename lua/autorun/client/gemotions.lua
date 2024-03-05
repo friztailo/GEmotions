@@ -1,31 +1,24 @@
---[[
-	░▒▓████████▓▒░▒▓███████▓▒░░▒▓█▓▒░       ░▒▓██████▓▒░░▒▓███████▓▒░  
-	░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
-	░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
-	░▒▓██████▓▒░ ░▒▓███████▓▒░░▒▓█▓▒░      ░▒▓████████▓▒░▒▓█▓▒░░▒▓█▓▒░ 
-	░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
-	░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
-	░▒▓████████▓▒░▒▓███████▓▒░░▒▓████████▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
-]]--
-
 gemotions = gemotions or {}
 
 gemotions.emotions = {}
 gemotions.packages = {}
+gemotions.packagesCount = 0
 
-do
-	function gemotions.RegisterPackage(package, title, data)
-		if not gemotions.emotions[package] then
-			gemotions.emotions[package] = {
+do -- RegisterPackage
+	local insert = table.insert
+
+	function gemotions.RegisterPackage(name, title, data)
+		if not gemotions.emotions[name] then
+			gemotions.emotions[name] = {
 				title = title
 			}
-			table.insert(gemotions.packages, package)
+			insert(gemotions.packages, name)
 		end
 
 		for i, k in ipairs(data) do
 			local mat, snd = k[1], k[2]
 
-			table.insert(gemotions.emotions[package], {
+			insert(gemotions.emotions[name], {
 				material = Material(mat), 
 				sound = snd
 			})
@@ -33,13 +26,11 @@ do
 	end
 end
 
-do 
-	gemotions.GetPack = function(id)
-		return gemotions.emotions[gemotions.packages[id]]
-	end
+gemotions.GetPackage = function(id) -- GetPackage
+	return gemotions.emotions[gemotions.packages[id]]
 end
 
-do
+do -- Draw
 	local basis = Material("gemotions/base.png")
 	local basisSelect = Material("gemotions/base_select.png")
 
@@ -88,6 +79,7 @@ end
 do -- Loading Packages
 	for k, v in ipairs(file.Find("gemotions/*", "LUA")) do
 		include(string.format("gemotions/%s", v))
+		gemotions.packagesCount = gemotions.packagesCount + 1
 	end
 end
 
@@ -95,157 +87,187 @@ end
 
 local PANEL = {}
 
-local blur = Material("pp/blurscreen")
-
-function PANEL:GetSelectedPackage()
-	return gemotions.GetPack(self.selectedPack)
-end
-
 function PANEL:Init() -- Init
     self:SetSize(ScrW(), ScrH())
 	self:SetAlpha(0)
 	self:Show()
 
-	self.selectedPack = 1
+	self.selectedPackage = 1
+	self.selectedEmote = nil
 end
 
-function PANEL:OnCursorMoved(x, y)
-    local x, y = x - ScrW() / 2, y - ScrH() / 2
-    local length = math.sqrt(x ^ 2 + y ^ 2)
+function PANEL:GetSelectedPackage()
+	return gemotions.GetPackage(self.selectedPackage)
+end
 
-	local emotions = self:GetSelectedPackage()
-	local step = 2 * math.pi / #emotions
+function PANEL:GetSelectedEmote()
+	local package = self:GetSelectedPackage()
+	return package and package[self.selectedEmote] or nil
+end
 
-	if length > 64 then
-		local angle = y >= 0 and math.acos(x / length) or math.pi + math.acos(-x / length)
+do -- OnCursorMoved
+	local pi = math.pi
+	local ScrW, ScrH = ScrW, ScrH
+	local sqrt = math.sqrt
+	local acos = math.acos
+	local round = math.Round
 
-		local selected = math.Round(angle / step) % #emotions + 1
-	
-		if selected ~= self.emotionSelected then
-			surface.PlaySound("gemotions/ui/switch.ogg")
+	function PANEL:OnCursorMoved(x, y)
+		local package = self:GetSelectedPackage()
+		if package == nil then return end
+
+		local packageCount = #package
+		local packageStep = 2 * pi / packageCount
+
+		local x, y = x - ScrW() / 2, y - ScrH() / 2
+		local length = sqrt(x ^ 2 + y ^ 2)
+
+		if (length > 64) then
+			local angle = acos(x / length)
+			if (y < 0) then
+				angle = 2 * pi - angle
+			end
+
+			local selected = round(angle / packageStep) % packageCount + 1
+
+			if selected ~= self.selectedEmote then
+				surface.PlaySound("gemotions/ui/switch.ogg")
+			end
+			
+			self.selectedEmote = selected
+		else
+			self.selectedEmote = nil
 		end
-		
-		self.emotionSelected = selected
-
-	else
-		self.emotionSelected = nil
 	end
 end
 
-function PANEL:OnMouseWheeled(delta)
-	if (#gemotions.packages < 2) then return end 
+function PANEL:OnMouseWheeled(delta) -- OnMouseWheeled
+	if (gemotions.packagesCount < 2) then return end 
 
-	self.selectedPack = (self.selectedPack - delta - 1) % #gemotions.packages + 1
-	self.emotionSelected = nil
+	self.selectedPackage = (self.selectedPackage - delta - 1) % gemotions.packagesCount + 1
+	self.selectedEmote = nil
 
 	surface.PlaySound("gemotions/ui/rollover.ogg")
 end
 
-function PANEL:Show() -- Show
-	if self.emotionSelected then
-		self:GetSelectedPackage()[self.emotionSelected].scale = 1
-		self.emotionSelected = nil
+do
+	local animDuration = 0.12
+
+	function PANEL:Show() -- Show
+		local emote = self:GetSelectedEmote()
+		if emote then
+			emote.scale = 1
+		end
+
+		self.selectedEmote = nil
+		self:SetVisible(true)
+		self:Stop()
+		self:AlphaTo(255, animDuration)
+		self:SetMouseInputEnabled(true)
 	end
 
-	self:SetVisible(true)
-	self:Stop()
-	self:AlphaTo(255, 0.1)
-	self:SetMouseInputEnabled(true)
+	function PANEL:Hide() -- Hide
+		self:Stop()
+		self:AlphaTo(0, animDuration, nil, function()
+			self:SetVisible(false)
+			self:SetMouseInputEnabled(false)
+		end)
+	end
 end
 
-function PANEL:Hide() -- Hide
-	self:Stop()
-	self:AlphaTo(0, 0.1, nil, function()
-		self:SetVisible(false)
-		self:SetMouseInputEnabled(false)
-	end)
-end
+do -- Panel Paint
+	local DrawBlur
+	do -- DrawBlur
+		local blur = Material("pp/blurscreen")
+		local bFloat = "$blur"
+		local bSetFloat = blur.SetFloat
+		local bRecompute = blur.Recompute
 
-function PANEL:Paint(w, h)
-    -- Blur
-    blur:SetFloat("$blur", self:GetAlpha() / 64)
-	blur:Recompute()
+		local render_UpdateScreenEffectTexture = render.UpdateScreenEffectTexture
+		local surface_SetMaterial = surface.SetMaterial
+		local surface_SetDrawColor = surface.SetDrawColor
+		local surface_DrawTexturedRect = surface.DrawTexturedRect
+		local surface_DrawRect = surface.DrawRect
 
-	render.UpdateScreenEffectTexture()
-	surface.SetMaterial(blur)
-	surface.SetDrawColor(255, 255, 255, 255)
-	surface.DrawTexturedRect(0, 0, w, h)
+		DrawBlur = function(self, w, h)
+			bSetFloat(blur, bFloat, self:GetAlpha() / 64)
+			bRecompute(blur)
 
-	surface.SetDrawColor(32, 32, 32, 240)
-	surface.DrawRect(0, 0, w, h)
+			render_UpdateScreenEffectTexture()
+			surface_SetMaterial(blur)
+			surface_SetDrawColor(255, 255, 255, 255)
+			surface_DrawTexturedRect(0, 0, w, h)
 
-	-- Cifri snizu
-	local package = self:GetSelectedPackage()
+			surface_SetDrawColor(32, 32, 32, 240)
+			surface_DrawRect(0, 0, w, h)
+		end
+	end
 
-	-- if (#gemotions.packages > 1) then
-		local _, sh = draw.SimpleText( string.format("%d/%d", self.selectedPack, #gemotions.packages), "HudDefault", w/2, h*0.975, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
-		draw.SimpleText( package.title, "HudDefault", w/2, h*0.975 - sh, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
-	-- end
+	local pi = math.pi
+	local max = math.max
+	local cos, sin = math.cos, math.sin
 
-	-- Draw Circle
-	surface.DrawCircle(w / 2, h / 2, 64, 128, 128, 128, 32)
+	surface.CreateFont("gemotions_small", {
+		font = "Roboto",
+		size = 16,
+		extended = true,
+	})
 
-    -- Draw Emotions
-	local count = #package
-	local radius = math.max(112, (64 * count) / (2 * math.pi))
+	surface.CreateFont("gemotions_medium", {
+		font = "Roboto",
+		size = 24,
+		extended = true,
+	})
 
-    for i = 1, count do
-		local k = package[i]
-		local step = 2 * math.pi / count
-		local rad = (i - 1) * step
+	function PANEL:Paint(w, h)
+		local w_half, h_half = w / 2, h / 2
 
-        local cos, sin = math.cos(rad), math.sin(rad)	
+		-- Background Blur
+		DrawBlur(self, w, h)
 
-        local scale = Lerp(RealFrameTime() * 12, k.scale or 1, i == self.emotionSelected and 2 or 1)
-		k.scale = scale
+		-- Package
+		local package = self:GetSelectedPackage()
+		local packageCount = #package
+		local packageStep = 2 * pi / packageCount
+		local packageRadius = max(112, (64 * packageCount) / (2 * pi))
+		local packageTitle = package.title
 
-        local _w = 32 * scale
-        local _h = 32 * scale
-        local x = w / 2 + cos * radius - _w / 2
-        local y = h / 2 + sin * radius - _h / 2
+		-- Draw Circle
+		surface.DrawCircle(w_half, h_half, 64, 128, 128, 128, 32)
 
-        gemotions.Draw(package, i, x, y, _w, _h, true)
-    end
-	
+		-- Draw Emotions
+		for id = 1, packageCount do
+			local emote = package[id]
+
+			local rad = (id - 1) * packageStep
+			local emoteCos = cos(rad)
+			local emoteSin = sin(rad)
+
+			local emoteScale = Lerp(RealFrameTime() * 12, emote.scale or 1, (id == self.selectedEmote) and 2 or 1)
+			emote.scale = emoteScale
+
+			do
+				local w = 32 * emoteScale
+				local h = 32 * emoteScale
+				local x = w_half + emoteCos * packageRadius - w / 2
+				local y = h_half + emoteSin * packageRadius - h / 2
+
+				gemotions.Draw(package, id, x, y, w, h, true)
+			end
+		end
+
+		-- Draw Package
+		if (gemotions.packagesCount > 1) then
+			local _,sh =
+			draw.SimpleText(string.format("%d/%d", self.selectedPackage, gemotions.packagesCount), "gemotions_small", w/2, h*0.98, nil, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
+			draw.SimpleText(packageTitle, "gemotions_medium", w/2, h*0.98 - sh, nil, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
+		else
+			draw.SimpleText(packageTitle, "gemotions_medium", w/2, h*0.975, nil, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
+		end
+	end
 end
 
 vgui.Register("gemotions", PANEL, "DPanel")
-
---[[
-
- /$$       /$$$$$$ /$$    /$$ /$$$$$$ /$$        /$$$$$$  /$$   /$$ /$$$$$$$$ /$$$$$$$   
-| $$      |_  $$_/| $$   | $$|_  $$_/| $$       /$$__  $$| $$$ | $$|__  $$__/| $$__  $$  
-| $$        | $$  | $$   | $$  | $$  | $$      | $$  \ $$| $$$$| $$   | $$   | $$  \ $$  
-| $$        | $$  |  $$ / $$/  | $$  | $$      | $$$$$$$$| $$ $$ $$   | $$   | $$$$$$$/  
-| $$        | $$   \  $$ $$/   | $$  | $$      | $$__  $$| $$  $$$$   | $$   | $$__  $$  
-| $$        | $$    \  $$$/    | $$  | $$      | $$  | $$| $$\  $$$   | $$   | $$  \ $$  
-| $$$$$$$$ /$$$$$$   \  $/    /$$$$$$| $$$$$$$$| $$  | $$| $$ \  $$   | $$   | $$  | $$  
-|________/|______/    \_/    |______/|________/|__/  |__/|__/  \__/   |__/   |__/  |__/  
-                                                                                         
-                                                                                         
-                                                                                         
-                                                                                         
-										    /$$                                                                                  
-										   | $$                                                                                  
-										 /$$$$$$$$                                                                               
-										|__  $$__/                                                                               
-										   | $$                                                                                  
-										   |__/                                                                                  
-                                                                                         
-                                                                                         
-                                                                                         
-                                                                                         
- /$$$$$$$  /$$$$$$$  /$$$$$$  /$$$$$$  /$$$$$$$$ /$$$$$$  /$$     /$$ /$$        /$$$$$$ 
-| $$__  $$| $$__  $$|_  $$_/ /$$__  $$|__  $$__//$$__  $$|  $$   /$$/| $$       /$$__  $$
-| $$  \ $$| $$  \ $$  | $$  | $$  \__/   | $$  | $$  \ $$ \  $$ /$$/ | $$      | $$  \ $$
-| $$  | $$| $$$$$$$/  | $$  |  $$$$$$    | $$  | $$$$$$$$  \  $$$$/  | $$      | $$  | $$
-| $$  | $$| $$__  $$  | $$   \____  $$   | $$  | $$__  $$   \  $$/   | $$      | $$  | $$
-| $$  | $$| $$  \ $$  | $$   /$$  \ $$   | $$  | $$  | $$    | $$    | $$      | $$  | $$
-| $$$$$$$/| $$  | $$ /$$$$$$|  $$$$$$/   | $$  | $$  | $$    | $$    | $$$$$$$$|  $$$$$$/
-|_______/ |__/  |__/|______/ \______/    |__/  |__/  |__/    |__/    |________/ \______/ 
-                                                                                         
-                                                                                                                           
-]]--
 
 -----------------------------------------------------------------------------------------------
 
@@ -275,12 +297,12 @@ hook.Add("PlayerButtonUp", "gemotions", function(ply, key) -- Close
 			CloseDermaMenus()
 			gui.EnableScreenClicker(false)
 
-            local selected = panel.emotionSelected
+            local selected = panel.selectedEmote
 			if not selected then return end
 
 			net.Start("gemotions") -- Net
-			    net.WriteUInt(selected, 7)
-				net.WriteUInt(panel.selectedPack,7)
+			    net.WriteUInt(selected, 7) -- EMOTE ID
+				net.WriteUInt(panel.selectedPackage, 7) -- PACKAGE ID
 			net.SendToServer()
 		end
 	end
@@ -288,121 +310,116 @@ end)
 
 -----------------------------------------------------------------------------------------------
 
-gemotions.draw = {}
-gemotions.huddraw = false
+local gemotionsDraw = {}
 
 net.Receive("gemotions", function() -- Receive
 	local selected, package, ply = net.ReadUInt(7), net.ReadUInt(7), net.ReadEntity()
+	local packtbl = gemotions.GetPackage(package)
 
-	local packtbl = gemotions.GetPack(package)
+	if packtbl and packtbl[selected] then
+        ply:EmitSound(packtbl[selected].sound
+			or "gemotions/ui/bong.ogg", 75, 100, 1)
 
-	if not packtbl then
-		return
-	end
-
-	if not packtbl[selected] then
-        return
+		gemotionsDraw[ply] = {
+			selected = selected,
+			package = packtbl,
+			scale = 0,
+			time = RealTime(),	
+		}
     end
-
-	ply:EmitSound(packtbl[selected].sound
-		or "gemotions/ui/bong.ogg", 75, 100, 1)
-
-    if ply == LocalPlayer() then
-        gemotions.huddraw = true
-    end
-
-	gemotions.draw[ply] = {
-        time = RealTime(),	
-        scale = 0,
-		selected = selected,
-		package = packtbl
-	}
 end)
 
 -----------------------------------------------------------------------------------------------
 
-local m_vec, m_ang = Vector(0, 0, 0), Angle(0, 0, 0)
-local vec_SetUnpacked = m_vec.SetUnpacked
+hook.Add("PostDrawTranslucentRenderables", "gemotions", function() -- PostDrawTranslucentRenderables
+	for i, ply in ipairs(player.GetAll()) do
+		if ply == LocalPlayer() and not ply:ShouldDrawLocalPlayer() then return end
 
-hook.Add("PostPlayerDraw", "gemotions", function(ply, studio) -- PostPlayerDraw
-	local data = gemotions.draw[ply]
-	if not data then return end
+		local data = gemotionsDraw[ply]
+		if not data then return end
 
-	local time = RealTime() - data.time
+		local time = RealTime() - data.time
 
-	if time >= 5 then
-		gemotions.draw[ply] = nil
-	else
-		local pos = ply:GetShootPos()
-		local head = ply:LookupBone("ValveBiped.Bip01_Head1")
-		if head then
-			local headpos = ply:GetBonePosition(head)
-			pos = headpos == ply:GetPos() and pos or headpos
-		end
-		pos.z = pos.z + 10
+		if time >= 5 then
+			gemotionsDraw[ply] = nil
+		else
+			local pos = ply:GetShootPos()
+			local head = ply:LookupBone("ValveBiped.Bip01_Head1")
+			if head then
+				local headpos = ply:GetBonePosition(head)
+				pos = headpos == ply:GetPos() and pos or headpos
+			end
+			pos.z = pos.z + 10
 
-		local angle = (pos - EyePos()):Angle()
-		angle.yaw, angle.roll = angle.yaw - 90, 90
+			local angle = (pos - EyePos()):Angle()
+			angle.yaw, angle.roll = angle.yaw - 90, 90
 
-		local pingpong = math.abs((time * 2) % 2 - 1)
-		angle.pitch = (math.ease.InOutBack(pingpong) - 0.5) * 15
+			local pingpong = math.abs((time * 2) % 2 - 1)
+			angle.pitch = (math.ease.InOutBack(pingpong) - 0.5) * 15
 
-		local scale = Lerp(RealFrameTime() * 8, data.scale, time < 2.5 and 0.44 or 0)
-		data.scale = scale
-        
-		cam.Start3D2D(pos, angle, scale or data.scale)
-            gemotions.Draw(data.package, data.selected, -16, -38, 32, 38)
-		cam.End3D2D()
-
-		if ply == LocalPlayer() then
-			gemotions.huddraw = false
+			local scale = Lerp(RealFrameTime() * 8, data.scale, time < 2.5 and 0.44 or 0)
+			data.scale = scale
+			
+			cam.Start3D2D(pos, angle, scale or data.scale)
+				gemotions.Draw(data.package, data.selected, -16, -38, 32, 38)
+			cam.End3D2D()
 		end
 	end
 end)
 
-hook.Add("HUDPaint", "gemotions", function() -- HUDPaint
-    local ply = LocalPlayer()
+do
+	local m_vec, m_ang = Vector(0, 0, 0), Angle(0, 0, 0)
+	local vec_SetUnpacked = m_vec.SetUnpacked
 
-	local data = gemotions.draw[ply]
-	if not data then return end
+	local matrix = Matrix()
+	local mat_Translate = matrix.Translate
+	local mat_Rotate = matrix.Rotate
+	local mat_Scale = matrix.Scale
 
-	if not gemotions.huddraw then
-		gemotions.huddraw = true
-		return
-	end
+	local Matrix = Matrix
+	local ScrW, ScrH = ScrW, ScrH
+	local abs, InOutBack = math.abs, math.ease.InOutBack
 
-	local time = RealTime() - data.time
+	local ply = LocalPlayer()
 
-	if time >= 5 then
-		gemotions.huddraw = false
-		gemotions.draw[ply] = nil
-	else
-		local pingpong = math.abs((time * 2) % 2 - 1)
-		local yaw = (math.ease.InOutBack(pingpong) - 0.5) * 15
+	hook.Add("HUDPaint", "gemotions", function() -- HUDPaint
+		if ply:ShouldDrawLocalPlayer() then return end
 
-		local m = Matrix()
-		local w, h = ScrW(), ScrH()
+		local data = gemotionsDraw[ply]
+		if not data then return end
 
-		vec_SetUnpacked(m_vec, w / 2, h / (w/h*1.125*2), 0)
-		m:Translate(m_vec)
+		local time = RealTime() - data.time
 
-		m_ang.yaw = yaw
-		m:Rotate(m_ang)
+		if time >= 5 then
+			gemotionsDraw[ply] = nil
+		else
+			local pingpong = abs((time * 2) % 2 - 1)
+			local yaw = (InOutBack(pingpong) - 0.5) * 15
 
-		local scale = Lerp(RealFrameTime() * 8, data.scale, time < 2.5 and 0.44 or 0)
-		data.scale = scale
+			local m = Matrix()
+			local w, h = ScrW(), ScrH()
 
-		vec_SetUnpacked(m_vec, scale, scale, scale)
-		m:Scale(m_vec)
+			vec_SetUnpacked(m_vec, w / 2, h / (w/h*1.125*2), 0)
+			mat_Translate(m, m_vec)
 
-		vec_SetUnpacked(m_vec, -w / 2, -h / (w/h*1.125), 0)
-		m:Translate(m_vec)
+			m_ang.yaw = yaw
+			mat_Rotate(m, m_ang)
 
-		cam.PushModelMatrix(m)
-            gemotions.Draw(data.package, data.selected, w / 2 - 160, 38, 320, 380)
-		cam.PopModelMatrix()
-	end
-end)
+			local scale = Lerp(RealFrameTime() * 8, data.scale, time < 2.5 and 0.44 or 0)
+			data.scale = scale
+
+			vec_SetUnpacked(m_vec, scale, scale, scale)
+			mat_Scale(m, m_vec)
+
+			vec_SetUnpacked(m_vec, -w / 2, -h / (w/h*1.125), 0)
+			mat_Translate(m, m_vec)
+
+			cam.PushModelMatrix(m)
+				gemotions.Draw(data.package, data.selected, w / 2 - 160, 38, 320, 380)
+			cam.PopModelMatrix()
+		end
+	end)
+end
 
 -----------------------------------------------------------------------------------------------
 
