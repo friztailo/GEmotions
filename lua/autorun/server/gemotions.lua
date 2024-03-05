@@ -54,7 +54,7 @@ end
 
 do -- Net Receive
 	local temp = {}
-	local cooldown = 0.6
+	local cooldown = 0.8
 
 	util.AddNetworkString("gemotions")
 	net.Receive("gemotions", function(len, ply)
