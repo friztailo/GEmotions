@@ -115,16 +115,16 @@ do
 	end
 
 	hook.Add("PlayerButtonDown", "gemotions", function(ply, key)
-		if key == bind:GetInt() then
+		if (key == bind:GetInt()) then
 			if not IsValid(gemotions.base) then
 				gemotions.base = vgui.Create("gemotions")
-			end
+			end	
 			gemotions.base:Show()
 		end
 	end)
 
 	hook.Add("PlayerButtonUp", "gemotions", function(ply, key)
-		if key == bind:GetInt() then
+		if (key == bind:GetInt()) then
 			if not IsValid(gemotions.base) then
 				gemotions.base = vgui.Create("gemotions")
 			end
@@ -161,7 +161,6 @@ do
 
 		gemotions.drawQueue[ply] = {
 			emote = emote,
-			scale = 0,
 			time = RealTime()
 		}
 	end)
@@ -176,7 +175,7 @@ do
 	local drawQueue = gemotions.drawQueue
 
 	local abs, InOutBack = math.abs, math.ease.InOutBack
-	local RealFrameTime = RealFrameTime
+	local Lerp, RealFrameTime = Lerp, RealFrameTime
 
 	local cam_Start3D2D, cam_End3D2D = cam.Start3D2D, cam.End3D2D
 
@@ -187,7 +186,7 @@ do
 			end
 
 			local data = drawQueue[ply]
-			if (not data) then 
+			if (data == nil) then 
 				return
 			end
 
@@ -211,7 +210,7 @@ do
 			local pingpong = abs((time * 2) % 2 - 1)
 			angle.pitch = (InOutBack(pingpong) - 0.5) * 15
 
-			local emoteScale = Lerp(RealFrameTime() * 8, data.scale, time < 2.5 and 0.44 or 0)
+			local emoteScale = Lerp(RealFrameTime() * 8, data.scale or 0, time < 2.5 and 0.44 or 0)
 			data.scale = emoteScale
 			
 			cam_Start3D2D(pos, angle, emoteScale)
@@ -229,48 +228,52 @@ do
 	local drawQueue = gemotions.drawQueue
 
 	local abs, InOutBack = math.abs, math.ease.InOutBack
-	local RealFrameTime = RealFrameTime
+	local Lerp, RealFrameTime = Lerp, RealFrameTime
 
 	local matrix = Matrix()
 	local mat_Translate, mat_Rotate, mat_Scale = matrix.Translate, matrix.Rotate, matrix.Scale
 
 	local m_vec, m_ang = Vector(0, 0, 0), Angle(0, 0, 0)
 	local vec_SetUnpacked = m_vec.SetUnpacked
+	local ang_SetUnpacked = m_ang.SetUnpacked
 	
 	local cam_PushModelMatrix, cam_PopModelMatrix = cam.PushModelMatrix, cam.PopModelMatrix
 
 	hook.Add("HUDPaint", "gemotions", function()
 		local ply = LocalPlayer()
-		if ply:ShouldDrawLocalPlayer() then return end
+		if ply:ShouldDrawLocalPlayer() then 
+			return 
+		end
 
 		local data = drawQueue[ply]
-		if not data then return end
+		if (data == nil) then 
+			return 
+		end
 
 		local time = RealTime() - data.time
 
-		if time >= 5 then
+		if (time >= 5) then
 			drawQueue[ply] = nil
-		else
-			local pingpong = abs((time * 2) % 2 - 1)
-			local yaw = (InOutBack(pingpong) - 0.5) * 15
-
-			local m = Matrix()
-			local w, h = ScrW(), ScrH()
-			local w_half = w / 2
-			local ratio = w / h
-
-			local scale = Lerp(RealFrameTime() * 8, data.scale, time < 2.5 and 0.44 or 0)
-			data.scale = scale
-
-			vec_SetUnpacked(m_vec, w_half, 222, 0); mat_Translate(m, m_vec);
-			m_ang.yaw = yaw; mat_Rotate(m, m_ang)
-			vec_SetUnpacked(m_vec, scale, scale, 0); mat_Scale(m, m_vec)
-			vec_SetUnpacked(m_vec, -w_half, 0, 0); mat_Translate(m, m_vec)
-
-			cam_PushModelMatrix(m)
-				ge_DrawEmote(data.emote, w_half - 160, -380, 320, 380)
-			cam_PopModelMatrix()
+			return
 		end
+
+		local pingpong = abs((time * 2) % 2 - 1)
+		local yaw = (InOutBack(pingpong) - 0.5) * 15
+
+		local m = Matrix()
+		local w_half, h = ScrW() / 2, ScrH()
+
+		local scale = Lerp(RealFrameTime() * 8, data.scale or 0, time < 2.5 and 0.44 or 0)
+		data.scale = scale
+
+		vec_SetUnpacked(m_vec, w_half, 222, 0); mat_Translate(m, m_vec);
+		ang_SetUnpacked(m_ang, 0, yaw, 0); mat_Rotate(m, m_ang)
+		vec_SetUnpacked(m_vec, scale, scale, 0); mat_Scale(m, m_vec)
+		vec_SetUnpacked(m_vec, -w_half, 0, 0); mat_Translate(m, m_vec)
+
+		cam_PushModelMatrix(m)
+			ge_DrawEmote(data.emote, w_half - 160, -380, 320, 380)
+		cam_PopModelMatrix()
 	end)
 end
 

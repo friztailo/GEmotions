@@ -22,10 +22,10 @@ do
 	gemotions.Register = function(title, tbldata)
 		for k, v in ipairs(tbldata) do
 			local mat, snd = v[1], v[2]
-			if mat then
+			if (mat) then
 				resource.AddSingleFile(string.format("materials/%s", mat))
 			end
-			if snd then
+			if (snd) then
 				resource.AddSingleFile(string.format("sound/%s", snd))
 			end
 		end
