@@ -257,18 +257,18 @@ do
 			local m = Matrix()
 			local w, h = ScrW(), ScrH()
 			local w_half = w / 2
-			local ratio = w / h * 1.125
+			local ratio = w / h
 
 			local scale = Lerp(RealFrameTime() * 8, data.scale, time < 2.5 and 0.44 or 0)
 			data.scale = scale
 
-			vec_SetUnpacked(m_vec, w_half, h / (ratio * 2), 0); mat_Translate(m, m_vec);
+			vec_SetUnpacked(m_vec, w_half, 222, 0); mat_Translate(m, m_vec);
 			m_ang.yaw = yaw; mat_Rotate(m, m_ang)
-			vec_SetUnpacked(m_vec, scale, scale, scale); mat_Scale(m, m_vec)
-			vec_SetUnpacked(m_vec, -w_half, -h / ratio, 0); mat_Translate(m, m_vec)
+			vec_SetUnpacked(m_vec, scale, scale, 0); mat_Scale(m, m_vec)
+			vec_SetUnpacked(m_vec, -w_half, 0, 0); mat_Translate(m, m_vec)
 
 			cam_PushModelMatrix(m)
-				ge_DrawEmote(data.emote, w_half - 160, 38, 320, 380)
+				ge_DrawEmote(data.emote, w_half - 160, -380, 320, 380)
 			cam_PopModelMatrix()
 		end
 	end)

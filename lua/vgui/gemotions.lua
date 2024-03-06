@@ -94,8 +94,8 @@ do
     local m_panel = FindMetaTable("Panel")
     local pGetAlpha = m_panel.GetAlpha
 
-    local render_UpdateScreenEffectTexture, surface_SetMaterial, surface_SetDrawColor, surface_DrawTexturedRect, surface_DrawRect, surface_DrawCircle =
-        render.UpdateScreenEffectTexture, surface.SetMaterial, surface.SetDrawColor, surface.DrawTexturedRect, surface.DrawRect, surface.DrawCircle
+    local render_UpdateScreenEffectTexture, surface_SetMaterial, surface_SetDrawColor, surface_DrawTexturedRect, surface_DrawRect, surface_DrawCircle, draw_SimpleText =
+        render.UpdateScreenEffectTexture, surface.SetMaterial, surface.SetDrawColor, surface.DrawTexturedRect, surface.DrawRect, surface.DrawCircle, draw.SimpleText
 
     local Lerp, RealFrameTime = Lerp, RealFrameTime
 
@@ -103,6 +103,9 @@ do
 
     surface.CreateFont("gemotions_small", {font = "Roboto", size = 16, extended = true})
     surface.CreateFont("gemotions_medium", {font = "Roboto", size = 24, extended = true})
+
+    local gemotions_small = "gemotions_small"
+    local gemotions_medium = "gemotions_medium"
 
     function PANEL:Paint(w, h)
         local w_half, h_half = w / 2, h / 2
@@ -137,10 +140,10 @@ do
         -- Draw Package
 		if (gemotions.packagesCount > 1) then
 			local _,sh =
-			draw.SimpleText(string.format("%d/%d", self.selectedPackage, gemotions.packagesCount), "gemotions_small", w_half, h * 0.98, nil, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
-			draw.SimpleText(packageTitle, "gemotions_medium", w_half, h * 0.98 - sh, nil, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
+			draw_SimpleText(string.format("%d/%d", self.selectedPackage, gemotions.packagesCount), gemotions_small, w_half, h * 0.98, nil, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
+			draw_SimpleText(packageTitle, gemotions_medium, w_half, h * 0.98 - sh, nil, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
 		else
-			draw.SimpleText(packageTitle, "gemotions_medium", w_half, h * 0.975, nil, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
+			draw_SimpleText(packageTitle, gemotions_medium, w_half, h * 0.975, nil, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
 		end
 
         -- Emotions

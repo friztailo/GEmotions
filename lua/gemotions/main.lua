@@ -1,3 +1,8 @@
+--[[
+    gemotions.Register("title", {
+        {"path to image", "path to sound" or nil}
+    })
+]]--
 
 gemotions.Register("Emotions", {
     {"gemotions/main/hi.png", "gemotions/main/hi.ogg"},
