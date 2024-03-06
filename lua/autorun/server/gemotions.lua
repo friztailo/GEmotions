@@ -1,6 +1,14 @@
+--------------------------------------------------------------------------------------
+-- GEmotions
+--------------------------------------------------------------------------------------
+
 gemotions = gemotions or {}
 
-do -- Msg
+--------------------------------------------------------------------------------------
+-- Functions
+--------------------------------------------------------------------------------------
+
+do
 	local head = "[GEmotions] "
 	local color = Color( 193, 118, 255)
 	local color_text = Color( 210, 210, 210)
@@ -10,9 +18,9 @@ do -- Msg
 	end
 end
 
-do -- Loading Packages
-	gemotions.RegisterPackage = function(package, title, data)
-		for k, v in ipairs(data) do
+do
+	gemotions.Register = function(title, tbldata)
+		for k, v in ipairs(tbldata) do
 			local mat, snd = v[1], v[2]
 			if mat then
 				resource.AddSingleFile(string.format("materials/%s", mat))
@@ -24,7 +32,11 @@ do -- Loading Packages
 	end
 end
 
-do -- Loading Packages
+--------------------------------------------------------------------------------------
+-- Loading Packages
+--------------------------------------------------------------------------------------
+
+do
 	gemotions.Msg("Loading emotions packages...")
 
 	gemotions.loadedPackages = 0
@@ -40,7 +52,11 @@ do -- Loading Packages
 	gemotions.Msg(string.format("Registered %d packages!", gemotions.loadedPackages))
 end
 
-do -- Adding Files
+--------------------------------------------------------------------------------------
+-- Adding Files
+--------------------------------------------------------------------------------------
+
+do
 	gemotions.AddFiles = function(path)
 		local path = string.format("%s/", path)
 		for _,name in ipairs(file.Find(string.format("%s*", path), "GAME")) do
@@ -52,7 +68,11 @@ do -- Adding Files
 	gemotions.AddFiles("sound/gemotions/ui")
 end
 
-do -- Net Receive
+--------------------------------------------------------------------------------------
+-- Net Receive
+--------------------------------------------------------------------------------------
+
+do
 	local temp = {}
 	local cooldown = 0.8
 
@@ -64,8 +84,8 @@ do -- Net Receive
 		if time <= realtime then
 			time = realtime + cooldown
 			net.Start("gemotions")
-				net.WriteUInt(net.ReadUInt(7), 7) -- EMOTE ID
 				net.WriteUInt(net.ReadUInt(7), 7) -- PACKAGE ID
+				net.WriteUInt(net.ReadUInt(7), 7) -- EMOTE ID
 				net.WriteEntity(ply)
 			net.Broadcast()
 		end

@@ -1,5 +1,5 @@
 
-gemotions.RegisterPackage("main", "Emotions", {
+gemotions.Register("Emotions", {
     {"gemotions/main/hi.png", "gemotions/main/hi.ogg"},
     {"gemotions/main/bye.png", "gemotions/main/bye.ogg"},
     {"gemotions/main/happy.png", "gemotions/main/happy.ogg"},
