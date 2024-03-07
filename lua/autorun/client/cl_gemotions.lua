@@ -80,14 +80,14 @@ do
 		mesh_End()
 	end
 
-	local basis = Material("gemotions/base.png")
+	local basis = Material("gemotions/base.png", "ignorez")
 
 	gemotions.DrawEmote = function(emote, x, y, w, h, a)
 		DrawTexturedRect(x, y, w, h, basis, a)
 		DrawTexturedRect(x + w * 0.075, y + w * 0.075, w * 0.85, w * 0.85, emote.material, a)
 	end
 
-	local basis = Material("gemotions/base_select.png")
+	local basis = Material("gemotions/base_select.png", "ignorez")
 
 	gemotions.DrawEmoteQuad = function(emote, x, y, w, h, a)
 		DrawTexturedRect(x, y, w, h, basis, a)
@@ -171,7 +171,7 @@ end
 --------------------------------------------------------------------------------------
 
 do
-	local player_Iterator = player.Iterator
+	local ipairs, player_GetAll = ipairs, player.GetAll
 	local drawQueue = gemotions.drawQueue
 
 	local abs, InOutBack = math.abs, math.ease.InOutBack
@@ -180,21 +180,21 @@ do
 	local cam_Start3D2D, cam_End3D2D = cam.Start3D2D, cam.End3D2D
 
 	hook.Add("PostDrawTranslucentRenderables", "gemotions", function()
-		for i, ply in player_Iterator() do
+		for i, ply in ipairs(player_GetAll()) do
 			if (ply == LocalPlayer() and not ply:ShouldDrawLocalPlayer()) then
-				return
+				continue
 			end
 
 			local data = drawQueue[ply]
 			if (data == nil) then 
-				return
+				continue
 			end
 
 			local time = RealTime() - data.time
 
 			if (time >= 5) then
 				drawQueue[ply] = nil
-				return
+				continue
 			end
 
 			local pos, head = ply:GetShootPos(), ply:LookupBone("ValveBiped.Bip01_Head1")
