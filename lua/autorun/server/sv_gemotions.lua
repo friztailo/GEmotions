@@ -19,6 +19,8 @@ do
 end
 
 do
+	local ipairs = ipairs
+
 	gemotions.Register = function(title, tbldata)
 		for k, v in ipairs(tbldata) do
 			local mat, snd = v[1], v[2]
@@ -37,6 +39,8 @@ end
 --------------------------------------------------------------------------------------
 
 do
+	local ipairs = ipairs
+
 	gemotions.Msg("Loading emotions packages...")
 
 	gemotions.loadedPackages = 0
@@ -57,6 +61,8 @@ end
 --------------------------------------------------------------------------------------
 
 do
+	local ipairs = ipairs
+
 	gemotions.AddFiles = function(path)
 		local path = string.format("%s/", path)
 		for _,name in ipairs(file.Find(string.format("%s*", path), "GAME")) do
@@ -73,6 +79,10 @@ end
 --------------------------------------------------------------------------------------
 
 do
+	local RealTime = RealTime
+	local net_Start, net_WriteUInt, net_ReadUInt, net_WriteEntity, net_Broadcast =
+		net.Start, net.WriteUInt, net.ReadUInt, net.WriteEntity, net.Broadcast
+
 	local temp = {}
 	local cooldown = 0.8
 
@@ -83,11 +93,11 @@ do
 
 		if time <= realtime then
 			time = realtime + cooldown
-			net.Start("gemotions")
-				net.WriteUInt(net.ReadUInt(7), 7) -- PACKAGE ID
-				net.WriteUInt(net.ReadUInt(7), 7) -- EMOTE ID
-				net.WriteEntity(ply)
-			net.Broadcast()
+			net_Start("gemotions")
+				net_WriteUInt(net_ReadUInt(7), 7) -- PACKAGE ID
+				net_WriteUInt(net_ReadUInt(7), 7) -- EMOTE ID
+				net_WriteEntity(ply)
+			net_Broadcast()
 		end
 
 		temp[ply] = time

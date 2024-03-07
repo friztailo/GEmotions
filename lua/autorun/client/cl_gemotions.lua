@@ -18,6 +18,7 @@ local packages = gemotions.packages
 
 do
 	local insert = table.insert
+	local ipairs = ipairs
 
 	gemotions.Register = function(title, tbldata)
 		if (not emotions[title]) then
@@ -80,14 +81,14 @@ do
 		mesh_End()
 	end
 
-	local basis = Material("gemotions/base.png", "ignorez")
+	local basis = Material("gemotions/base.png", "smooth ignorez")
 
 	gemotions.DrawEmote = function(emote, x, y, w, h, a)
 		DrawTexturedRect(x, y, w, h, basis, a)
 		DrawTexturedRect(x + w * 0.075, y + w * 0.075, w * 0.85, w * 0.85, emote.material, a)
 	end
 
-	local basis = Material("gemotions/base_select.png", "ignorez")
+	local basis = Material("gemotions/base_select.png", "smooth ignorez")
 
 	gemotions.DrawEmoteQuad = function(emote, x, y, w, h, a)
 		DrawTexturedRect(x, y, w, h, basis, a)
