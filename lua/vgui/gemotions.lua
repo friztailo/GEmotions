@@ -7,6 +7,8 @@ gemotions = gemotions or {}
 local emotions = gemotions.emotions
 local packages = gemotions.packages
 
+local ge_convar = gemotions.convar
+
 local ge_GetPackage = gemotions.GetPackage
 local ge_GetEmote = gemotions.GetEmote
 local ge_DrawEmoteQuad = gemotions.DrawEmoteQuad
@@ -211,18 +213,26 @@ vgui.Register("gemotions", PANEL, "DPanel")
 do
     hook.Add("PopulateToolMenu", "Emotions_PopulateToolMenu", function()
         spawnmenu.AddToolMenuOption("Utilities", "User", "GEmotions", "GEmotions", "", "", function(panel)
-            panel.EmotionsText = vgui.Create("DLabel")
-            panel.EmotionsText:SetColor(Color(110, 110, 110))
-            panel.EmotionsText:SetText("Open")
-            panel.EmotionsText:SizeToContents()
-            panel:AddItem(panel.EmotionsText)
+            panel.enabled = vgui.Create("DCheckBoxLabel")
+            panel.enabled:SetText("Enabled")
+            panel.enabled:SetTextColor(Color(0, 0, 0))
+            panel.enabled:SetConVar("gemotions_enabled")
+            panel.enabled:SizeToContents()
+            panel:AddItem(panel.enabled)
 
-            panel.Emotionsbinder = vgui.Create("DBinder")
-            panel.Emotionsbinder:SetSelectedNumber(gemotions.bind:GetInt())
-            function panel.Emotionsbinder:OnChange(num)
-                gemotions.bind:SetInt(num)
+            panel.sounds = vgui.Create("DCheckBoxLabel")
+            panel.sounds:SetText("Sounds")
+            panel.sounds:SetTextColor(Color(0, 0, 0))
+            panel.sounds:SetConVar("gemotions_sounds")
+            panel.sounds:SizeToContents()
+            panel:AddItem(panel.sounds)
+
+            panel.open = vgui.Create("DBinder")
+            panel.open:SetSelectedNumber(ge_convar.open:GetInt())
+            function panel.open:OnChange(v)
+                ge_convar.open:SetInt(v)
             end
-            panel:AddItem(panel.Emotionsbinder)
+            panel:AddItem(panel.open)
         end)
     end)
 end

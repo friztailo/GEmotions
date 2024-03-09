@@ -13,6 +13,18 @@ local emotions = gemotions.emotions
 local packages = gemotions.packages
 
 --------------------------------------------------------------------------------------
+-- ConVar
+--------------------------------------------------------------------------------------
+
+gemotions.convar = {}
+
+gemotions.convar.enabled = CreateClientConVar("gemotions_enabled", "1")
+gemotions.convar.sounds = CreateClientConVar("gemotions_sounds", "1")
+gemotions.convar.open = CreateClientConVar("gemotions_open", tostring(KEY_T))
+
+local ge_convar = gemotions.convar
+
+--------------------------------------------------------------------------------------
 -- Functions
 --------------------------------------------------------------------------------------
 
@@ -106,17 +118,16 @@ local ge_DrawEmoteQuad = gemotions.DrawEmoteQuad
 --------------------------------------------------------------------------------------
 
 do
-	local keyDefault = KEY_T
-
-	local bind = CreateClientConVar("gemotions_open", tostring(keyDefault))
-	gemotions.bind = bind
-
 	if IsValid(gemotions.base) then
 		gemotions.base:Remove()
 	end
 
 	hook.Add("PlayerButtonDown", "gemotions", function(ply, key)
-		if (key == bind:GetInt()) then
+		if (not ge_convar.enabled:GetBool()) then 
+			return 
+		end
+
+		if (key == ge_convar.open:GetInt()) then
 			if not IsValid(gemotions.base) then
 				gemotions.base = vgui.Create("gemotions")
 			end	
@@ -125,7 +136,11 @@ do
 	end)
 
 	hook.Add("PlayerButtonUp", "gemotions", function(ply, key)
-		if (key == bind:GetInt()) then
+		if (not ge_convar.enabled:GetBool()) then 
+			return 
+		end
+
+		if (key == ge_convar.open:GetInt()) then
 			if not IsValid(gemotions.base) then
 				gemotions.base = vgui.Create("gemotions")
 			end
@@ -144,6 +159,10 @@ do
 	local soundDefault = "gemotions/ui/bong.ogg"
 
 	net.Receive("gemotions", function()
+		if (not ge_convar.enabled:GetBool()) then 
+			return 
+		end
+
 		local selectedPackage = net.ReadUInt(7)
 		local selectedEmote = net.ReadUInt(7)
 		local ply = net.ReadEntity()
@@ -158,7 +177,9 @@ do
 			return
 		end
 
-		ply:EmitSound(emote.sound or soundDefault, 75, 100, 1)
+		if (ge_convar.sounds:GetBool()) then
+			ply:EmitSound(emote.sound or soundDefault, 60, 100, 1)
+		end
 
 		gemotions.drawQueue[ply] = {
 			emote = emote,
@@ -181,6 +202,10 @@ do
 	local cam_Start3D2D, cam_End3D2D = cam.Start3D2D, cam.End3D2D
 
 	hook.Add("PostDrawTranslucentRenderables", "gemotions", function()
+		if (not ge_convar.enabled:GetBool()) then
+			return 
+		end
+
 		for i, ply in ipairs(player_GetAll()) do
 			if (ply == LocalPlayer() and not ply:ShouldDrawLocalPlayer()) then
 				continue
@@ -241,6 +266,10 @@ do
 	local cam_PushModelMatrix, cam_PopModelMatrix = cam.PushModelMatrix, cam.PopModelMatrix
 
 	hook.Add("HUDPaint", "gemotions", function()
+		if (not ge_convar.enabled:GetBool()) then
+			return 
+		end
+
 		local ply = LocalPlayer()
 		if ply:ShouldDrawLocalPlayer() then 
 			return 
